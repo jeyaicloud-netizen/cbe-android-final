@@ -16,12 +16,7 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v3
-      with:
-        cache-disabled: true
-
-    - name: Clean Old Files and Setup Project
+    - name: Generate Clean Project Files & Wrapper
       run: |
         # 1. Root build.gradle
         cat << 'EOF' > build.gradle
@@ -78,11 +73,33 @@ jobs:
         }
         EOF
 
-    - name: Generate Wrapper and Build
-      run: |
-        gradle wrapper --gradle-version 8.1.1 --distribution-type bin
+        # 4. Generate Gradle Wrapper Properties (Bypassing Gradle 9.7)
+        mkdir -p gradle/wrapper
+        cat << 'EOF' > gradle/wrapper/gradle-wrapper.properties
+        distributionBase=GRADLE_USER_HOME
+        distributionPath=wrapper/dists
+        distributionUrl=https\://services.gradle.org/distributions/gradle-8.5-bin.zip
+        networkTimeout=10000
+        validateDistributionUrl=true
+        zipStoreBase=GRADLE_USER_HOME
+        zipStorePath=wrapper/dists
+        EOF
+
+        # 5. Create gradlew executable script
+        cat << 'EOF' > gradlew
+        #!/usr/bin/env sh
+        exec gradle "$@"
+        EOF
         chmod +x gradlew
-        ./gradlew assembleDebug --no-daemon --stacktrace
+
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v3
+      with:
+        gradle-version: '8.5'
+        cache-disabled: true
+
+    - name: Build Debug APK
+      run: gradle assembleDebug --no-daemon --stacktrace
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
