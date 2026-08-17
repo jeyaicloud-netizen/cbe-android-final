@@ -16,9 +16,20 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Generate Clean Project Files & Wrapper
+    - name: Auto-Structure and Setup Project
       run: |
-        # 1. Root build.gradle
+        # 1. ፎልደሮችን ማዘጋጀት
+        mkdir -p app/src/main/assets
+        mkdir -p app/src/main/java/com/example/cbeapp
+
+        # 2. የዌብ (HTML/PNG) ፋይሎችን ወደ assets ማዛወር
+        mv app/src/main/*.html app/src/main/assets/ 2>/dev/null || true
+        mv app/src/main/*.css app/src/main/assets/ 2>/dev/null || true
+        mv app/src/main/*.js app/src/main/assets/ 2>/dev/null || true
+        mv app/src/main/*.json app/src/main/assets/ 2>/dev/null || true
+        mv app/src/main/*.png app/src/main/assets/ 2>/dev/null || true
+
+        # 3. Root build.gradle መፍጠር
         cat << 'EOF' > build.gradle
         buildscript {
             repositories {
@@ -37,14 +48,13 @@ jobs:
         }
         EOF
 
-        # 2. settings.gradle
+        # 4. settings.gradle መፍጠር
         cat << 'EOF' > settings.gradle
         rootProject.name = "CBE App"
         include ':app'
         EOF
 
-        # 3. app/build.gradle
-        mkdir -p app
+        # 5. app/build.gradle መፍጠር
         cat << 'EOF' > app/build.gradle
         apply plugin: 'com.android.application'
 
@@ -72,25 +82,6 @@ jobs:
             implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
         }
         EOF
-
-        # 4. Generate Gradle Wrapper Properties (Bypassing Gradle 9.7)
-        mkdir -p gradle/wrapper
-        cat << 'EOF' > gradle/wrapper/gradle-wrapper.properties
-        distributionBase=GRADLE_USER_HOME
-        distributionPath=wrapper/dists
-        distributionUrl=https\://services.gradle.org/distributions/gradle-8.5-bin.zip
-        networkTimeout=10000
-        validateDistributionUrl=true
-        zipStoreBase=GRADLE_USER_HOME
-        zipStorePath=wrapper/dists
-        EOF
-
-        # 5. Create gradlew executable script
-        cat << 'EOF' > gradlew
-        #!/usr/bin/env sh
-        exec gradle "$@"
-        EOF
-        chmod +x gradlew
 
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
