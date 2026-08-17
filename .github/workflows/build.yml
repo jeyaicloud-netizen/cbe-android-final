@@ -16,11 +16,65 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
 
-    - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v3
+    - name: Fix Project Files and Build
+      run: |
+        # Root build.gradle
+        cat << 'EOF' > build.gradle
+        buildscript {
+            repositories {
+                google()
+                mavenCentral()
+            }
+            dependencies {
+                classpath 'com.android.tools.build:gradle:8.1.1'
+            }
+        }
+        allprojects {
+            repositories {
+                google()
+                mavenCentral()
+            }
+        }
+        EOF
 
-    - name: Build with Gradle
-      run: gradle assembleDebug --stacktrace
+        # settings.gradle
+        cat << 'EOF' > settings.gradle
+        rootProject.name = "CBE App"
+        include ':app'
+        EOF
+
+        # app/build.gradle
+        mkdir -p app
+        cat << 'EOF' > app/build.gradle
+        apply plugin: 'com.android.application'
+
+        android {
+            namespace 'com.example.cbeapp'
+            compileSdk 34
+
+            defaultConfig {
+                applicationId "com.example.cbeapp"
+                minSdk 21
+                targetSdk 34
+                versionCode 1
+                versionName "1.0"
+            }
+
+            compileOptions {
+                sourceCompatibility JavaVersion.VERSION_17
+                targetCompatibility JavaVersion.VERSION_17
+            }
+        }
+
+        dependencies {
+            implementation 'androidx.appcompat:appcompat:1.6.1'
+            implementation 'com.google.android.material:material:1.11.0'
+            implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+        }
+        EOF
+
+        # Execute Build
+        gradle assembleDebug --stacktrace
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
