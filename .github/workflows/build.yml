@@ -19,31 +19,29 @@ jobs:
     - name: Setup Gradle
       uses: gradle/actions/setup-gradle@v3
 
-    - name: Generate Project Files and Build
+    - name: Clean Old Files and Setup Project
       run: |
         # 1. Root build.gradle
         cat << 'EOF' > build.gradle
-        plugins {
-            id 'com.android.application' version '8.1.1' apply false
+        buildscript {
+            repositories {
+                google()
+                mavenCentral()
+            }
+            dependencies {
+                classpath 'com.android.tools.build:gradle:8.1.1'
+            }
+        }
+        allprojects {
+            repositories {
+                google()
+                mavenCentral()
+            }
         }
         EOF
 
         # 2. settings.gradle
         cat << 'EOF' > settings.gradle
-        pluginManagement {
-            repositories {
-                google()
-                mavenCentral()
-                gradlePluginPortal()
-            }
-        }
-        dependencyResolutionManagement {
-            repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-            repositories {
-                google()
-                mavenCentral()
-            }
-        }
         rootProject.name = "CBE App"
         include ':app'
         EOF
@@ -51,9 +49,7 @@ jobs:
         # 3. app/build.gradle
         mkdir -p app
         cat << 'EOF' > app/build.gradle
-        plugins {
-            id 'com.android.application'
-        }
+        apply plugin: 'com.android.application'
 
         android {
             namespace 'com.example.cbeapp'
@@ -80,8 +76,11 @@ jobs:
         }
         EOF
 
-        # 4. Run Build
-        gradle assembleDebug --stacktrace
+    - name: Generate Gradle Wrapper
+      run: gradle wrapper --gradle-version 8.1.1 --distribution-type bin
+
+    - name: Build Debug APK
+      run: ./gradlew assembleDebug --stacktrace
 
     - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
